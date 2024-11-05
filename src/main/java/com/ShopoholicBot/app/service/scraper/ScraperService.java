@@ -2,10 +2,9 @@ package com.ShopoholicBot.app.service;
 
 import java.io.IOException;
 
-import com.ShopoholicBot.app.model.Product;
+import com.ShopoholicBot.app.dao.model.Product;
 import org.jsoup.*;
 import org.jsoup.nodes.*;
-import org.jsoup.select.*;
 import org.springframework.stereotype.Service;
 
 @Service

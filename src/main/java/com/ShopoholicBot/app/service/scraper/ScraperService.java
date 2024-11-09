@@ -1,4 +1,4 @@
-package com.ShopoholicBot.app.service;
+package com.ShopoholicBot.app.service.scraper;
 
 import java.io.IOException;
 
@@ -53,14 +53,6 @@ public class ScraperService {
             double priceOnSale = Double.parseDouble(
                     priceOnSaleString.substring(0, priceString.indexOf(","))
             );
-
-
-            System.out.println("Name          : " + name);
-            System.out.println("Image         : " + image);
-            System.out.println("Price         : " + price);
-            System.out.println("Price on sale : " + priceOnSale);
-            System.out.println("IsOnSale      : " + isOnSale);
-            System.out.println("#".repeat(30));
 
             product.setUrl(URL);
             product.setName(name);

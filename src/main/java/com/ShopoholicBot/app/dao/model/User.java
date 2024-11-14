@@ -5,7 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -28,8 +31,9 @@ public class User {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "product_id")
     )
-    private List<Product> wishList;
+    private List<Product> wishList = new ArrayList<>();
 
+    @Transactional
     public void addItem(Product product) {
         wishList.add(product);
     }

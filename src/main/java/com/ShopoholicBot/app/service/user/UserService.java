@@ -6,6 +6,8 @@ import com.ShopoholicBot.app.dao.repository.product.ProductRepository;
 import com.ShopoholicBot.app.dao.repository.user.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import java.util.Optional;
 
@@ -24,6 +26,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    @Transactional
     public void addItemToWishList(Long productId, Long userId) {
         Optional<User> user = findById(userId);
         Optional<Product> product = productRepository.findById(productId);

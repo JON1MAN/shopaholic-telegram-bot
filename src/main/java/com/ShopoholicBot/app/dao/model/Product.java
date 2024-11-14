@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -23,7 +24,7 @@ public class Product {
     private String image;
 
     @ManyToMany(mappedBy = "wishList")
-    private List<User> users;
+    private List<User> users = new ArrayList<>();
 
     private double price;
     private double priceOnSale;

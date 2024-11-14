@@ -1,6 +1,7 @@
 package com.ShopoholicBot.app.dao.model;
 
 import com.ShopoholicBot.app.service.scraper.ScraperService;
+import com.ShopoholicBot.app.service.user.UserService;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -21,13 +23,21 @@ import java.util.List;
 @Component
 public class Bot extends TelegramLongPollingBot {
 
-    private final ScraperService scraperService;
+    @Autowired
+    private ScraperService scraperService;
+    @Autowired
+    private UserService userService;
+
+    Long currentProductId = 0L;
+    Long currentChatId = 0L;
 
     @Value("${telegram.TELEGRAM_BOT_USERNAME}")
     private String BOT_USERNAME;
 
     @Value("${telegram.TELEGRAM_BOT_TOKEN}")
     private String BOT_TOKEN;
+
+    private final String startCommand = "/start";
 
     private InlineKeyboardButton yes = InlineKeyboardButton.builder()
             .text("Yes")
@@ -43,17 +53,6 @@ public class Bot extends TelegramLongPollingBot {
             .keyboardRow(List.of(yes, no))
             .build();
 
-    public Bot() {
-        super();
-        this.scraperService = new ScraperService();
-    }
-
-    @PostConstruct
-    public void init() {
-        System.out.println("Bot Username: " + getBotUsername());
-        System.out.println("Bot Token: " + getBotToken());
-    }
-
     @Override
     public String getBotUsername() {
         return BOT_USERNAME;
@@ -67,23 +66,34 @@ public class Bot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         if (update.getMessage() != null) {
-            var user = update.getMessage().getFrom();
+            var userTelegram = update.getMessage().getFrom();
             var message = update.getMessage();
-            var id = user.getId();
+            var chatId = message.getChatId();
 
-            System.out.println("User: " + user.getFirstName());
             String messageText = message.getText();
-            System.out.println("Wrote:" + messageText);
-            Product product = scraperService.scrapePage(messageText);
-
-            sendInfoOfProductMessage(id, product);
+            if (messageText.startsWith("/start")) {
+                User user = User.builder()
+                        .id(chatId)
+                        .username(message.getFrom().getUserName())
+                        .build();
+                userService.create(user);
+                sendStartResponse(chatId, message.getFrom().getUserName());
+            } else if (messageText.startsWith("https")) {
+                Product product = scraperService.scrapePage(messageText);
+                sendInfoOfProductMessage(chatId, product);
+            }
         }
 
         if (update.hasCallbackQuery()) {
             CallbackQuery callbackQuery = update.getCallbackQuery();
             String callbackData = callbackQuery.getData();
+            Message callBackMessage = callbackQuery.getMessage();
+            Long chatId = callbackQuery.getMessage().getChatId();
 
-            if ("YES_BUTTON".equals(callbackData)) {
+            if (callbackData.startsWith("YES_BUTTON:")) {
+                Long productId = Long.parseLong(callbackData.split(":")[1]);
+
+                userService.addItemToWishList(productId, chatId);
                 sendCallBackResponse(callbackQuery.getMessage().getChatId(), "YES BUTTON");
             }
         }
@@ -104,9 +114,27 @@ public class Bot extends TelegramLongPollingBot {
                 .caption(caption)
                 .build();
 
+        yes.setCallbackData("YES_BUTTON:" + product.getId());
+
         try{
             execute(sp);
             sendKeyboard(who, "Do you want to track this Product?", keyboard);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void sendStartResponse(Long chatId, String userName) {
+        String responseText = String.format(
+                "Hello %s, I can help you with tracking your favourite products, pls send me a link!",
+                userName);
+        SendMessage sendMessage = SendMessage.builder()
+                .chatId(String.valueOf(chatId))
+                .text(responseText)
+                .build();
+
+        try {
+            execute(sendMessage);
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);
         }

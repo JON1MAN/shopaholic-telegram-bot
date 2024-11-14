@@ -3,12 +3,18 @@ package com.ShopoholicBot.app.service.scraper;
 import java.io.IOException;
 
 import com.ShopoholicBot.app.dao.model.Product;
+import com.ShopoholicBot.app.service.ProductService;
+import lombok.AllArgsConstructor;
 import org.jsoup.*;
 import org.jsoup.nodes.*;
 import org.springframework.stereotype.Service;
 
+@AllArgsConstructor
 @Service
 public class ScraperService {
+
+    private ProductService productService;
+
     public Product scrapePage(String URL){
         Document doc;
         Product product = new Product();
@@ -60,6 +66,8 @@ public class ScraperService {
             product.setPrice(price);
             product.setPriceOnSale(priceOnSale);
             product.setOnSale(isOnSale);
+
+            productService.create(product);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -1,9 +1,12 @@
 package com.ShopoholicBot.app.dao.model;
 
+import com.ShopoholicBot.app.service.ProductService;
 import com.ShopoholicBot.app.service.scraper.ScraperService;
 import com.ShopoholicBot.app.service.user.UserService;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,7 +22,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.List;
+import java.util.Optional;
 
+@Slf4j
 @Component
 public class Bot extends TelegramLongPollingBot {
 
@@ -52,6 +57,8 @@ public class Bot extends TelegramLongPollingBot {
     private InlineKeyboardMarkup keyboard = InlineKeyboardMarkup.builder()
             .keyboardRow(List.of(yes, no))
             .build();
+    @Autowired
+    private ProductService productService;
 
     @Override
     public String getBotUsername() {
@@ -66,7 +73,6 @@ public class Bot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         if (update.getMessage() != null) {
-            var userTelegram = update.getMessage().getFrom();
             var message = update.getMessage();
             var chatId = message.getChatId();
 
@@ -79,8 +85,14 @@ public class Bot extends TelegramLongPollingBot {
                 userService.create(user);
                 sendStartResponse(chatId, message.getFrom().getUserName());
             } else if (messageText.startsWith("https")) {
-                Product product = scraperService.scrapePage(messageText);
-                sendInfoOfProductMessage(chatId, product);
+                log.info("User sent a link: {}", messageText);
+                Optional<Product> product = scraperService.scrapePage(messageText);
+
+                if (product.isPresent()) {
+                    productService.create(product.get());
+                    sendInfoOfProductMessage(chatId, product.get());
+                }
+
             }
         }
 

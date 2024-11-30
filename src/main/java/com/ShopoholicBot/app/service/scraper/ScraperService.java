@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono;
 @Service
 public class ScraperService {
 
-    @Value("${diffbot.DIFFBOT_API_KEY}")
+    @Value("${DIFFBOT_API_KEY}")
     private String DIFFBOT_API_KEY;
 
     public Optional<Product> scrapePage(String url) {

@@ -36,10 +36,10 @@ public class Bot extends TelegramLongPollingBot {
     Long currentProductId = 0L;
     Long currentChatId = 0L;
 
-    @Value("${telegram.TELEGRAM_BOT_USERNAME}")
+    @Value("${TELEGRAM_BOT_USERNAME}")
     private String BOT_USERNAME;
 
-    @Value("${telegram.TELEGRAM_BOT_TOKEN}")
+    @Value("${TELEGRAM_BOT_TOKEN}")
     private String BOT_TOKEN;
 
     private final String startCommand = "/start";

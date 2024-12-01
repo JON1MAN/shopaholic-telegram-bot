@@ -33,9 +33,6 @@ public class Bot extends TelegramLongPollingBot {
     @Autowired
     private UserService userService;
 
-    Long currentProductId = 0L;
-    Long currentChatId = 0L;
-
     @Value("${TELEGRAM_BOT_USERNAME}")
     private String BOT_USERNAME;
 
@@ -83,6 +80,8 @@ public class Bot extends TelegramLongPollingBot {
                         .username(message.getFrom().getUserName())
                         .build();
                 userService.create(user);
+                log.info("User: {} with id: {}, was created", user.getUsername(), user.getId());
+
                 sendStartResponse(chatId, message.getFrom().getUserName());
             } else if (messageText.startsWith("https")) {
                 log.info("User sent a link: {}", messageText);
@@ -100,18 +99,23 @@ public class Bot extends TelegramLongPollingBot {
             CallbackQuery callbackQuery = update.getCallbackQuery();
             String callbackData = callbackQuery.getData();
             Message callBackMessage = callbackQuery.getMessage();
-            Long chatId = callbackQuery.getMessage().getChatId();
+            Long chatId = callBackMessage.getChatId();
 
             if (callbackData.startsWith("YES_BUTTON:")) {
                 Long productId = Long.parseLong(callbackData.split(":")[1]);
 
                 userService.addItemToWishList(productId, chatId);
+                log.info("User: {}, with id: {}, added product with id: {}, to wishlist",
+                        callBackMessage.getFrom().getUserName(),
+                        chatId,
+                        productId);
+
                 sendCallBackResponse(callbackQuery.getMessage().getChatId(), "YES BUTTON");
             }
         }
     }
 
-    public void sendInfoOfProductMessage(Long who, Product product){
+    public void sendInfoOfProductMessage(Long who, Product product) {
         String imageUrl = product.getImage().replace("https", "http");
         String caption = String.format(
                 "%s\nPrice: %.2f PLN\nPrice on Sale: %.2f PLN\nIs on Sale: %b",
@@ -128,7 +132,7 @@ public class Bot extends TelegramLongPollingBot {
 
         yes.setCallbackData("YES_BUTTON:" + product.getId());
 
-        try{
+        try {
             execute(sp);
             sendKeyboard(who, "Do you want to track this Product?", keyboard);
         } catch (TelegramApiException e) {

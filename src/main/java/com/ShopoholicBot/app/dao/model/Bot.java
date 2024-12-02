@@ -1,11 +1,8 @@
 package com.ShopoholicBot.app.dao.model;
 
-import com.ShopoholicBot.app.service.ProductService;
+import com.ShopoholicBot.app.service.product.ProductService;
 import com.ShopoholicBot.app.service.scraper.ScraperService;
 import com.ShopoholicBot.app.service.user.UserService;
-import jakarta.annotation.PostConstruct;
-import lombok.AllArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,14 +27,20 @@ public class Bot extends TelegramLongPollingBot {
 
     @Autowired
     private ScraperService scraperService;
+
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private ProductService productService;
 
     @Value("${TELEGRAM_BOT_USERNAME}")
     private String BOT_USERNAME;
 
     @Value("${TELEGRAM_BOT_TOKEN}")
     private String BOT_TOKEN;
+
+    private static Bot instance;
 
     private final String startCommand = "/start";
 
@@ -54,8 +57,13 @@ public class Bot extends TelegramLongPollingBot {
     private InlineKeyboardMarkup keyboard = InlineKeyboardMarkup.builder()
             .keyboardRow(List.of(yes, no))
             .build();
-    @Autowired
-    private ProductService productService;
+
+    public static synchronized Bot getInstance() {
+        if (instance == null) {
+            instance = new Bot();
+        }
+        return instance;
+    }
 
     @Override
     public String getBotUsername() {
@@ -118,7 +126,12 @@ public class Bot extends TelegramLongPollingBot {
     public void sendInfoOfProductMessage(Long who, Product product) {
         String imageUrl = product.getImage().replace("https", "http");
         String caption = String.format(
-                "%s\nPrice: %.2f PLN\nPrice on Sale: %.2f PLN\nIs on Sale: %b",
+                        """
+                        %s
+                        Price: %.2f PLN
+                        Price on Sale: %.2f PLN
+                        Is on Sale: %b
+                        """,
                 product.getName(),
                 product.getPrice(),
                 product.getPriceOnSale(),
@@ -135,6 +148,35 @@ public class Bot extends TelegramLongPollingBot {
         try {
             execute(sp);
             sendKeyboard(who, "Do you want to track this Product?", keyboard);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void sendInformationAboutDiscountProduct(Long chatId, Product product) {
+        Bot bot = Bot.getInstance();
+        String imageUrl = product.getImage();
+        String caption = String.format(
+                        """
+                        !!! This product is ON SALE !!!
+                        
+                        "%s
+                        Price: %.2f PLN
+                        Price on Sale: %.2f PLN"
+                        """,
+                product.getName(),
+                product.getPrice(),
+                product.getPriceOnSale()
+        );
+
+        SendPhoto sp = SendPhoto.builder()
+                .chatId(chatId.toString())
+                .photo(new InputFile(imageUrl))
+                .caption(caption)
+                .build();
+
+        try {
+            bot.execute(sp);
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);
         }
@@ -171,12 +213,12 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void sendCallBackResponse(Long chatId, String text) {
-        SendMessage sendMessage = SendMessage.builder()
-                .text("You choose " + text)
-                .chatId(String.valueOf(chatId))
-                .build();
-
         try {
+            SendMessage sendMessage = SendMessage.builder()
+                    .text("You choose " + text)
+                    .chatId(String.valueOf(chatId))
+                    .build();
+
             execute(sendMessage);
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);

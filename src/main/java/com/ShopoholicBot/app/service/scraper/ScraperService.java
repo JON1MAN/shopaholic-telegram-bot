@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 import com.ShopoholicBot.app.dao.model.Product;
-import com.ShopoholicBot.app.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -54,7 +53,7 @@ public class ScraperService {
             JSONObject responseJson = new JSONObject(response.block());
             log.info("Response json: {}", responseJson);
 
-            Product product = mapToProduct(responseJson, encodedUrl);
+            Product product = mapFromJsonToProduct(responseJson, url);
 
             log.info("Product successfully scraped: {}", product);
             return Optional.of(product);
@@ -69,7 +68,7 @@ public class ScraperService {
         return Optional.empty();
     }
 
-    private Product mapToProduct(JSONObject jsonObject, String url) {
+    private Product mapFromJsonToProduct(JSONObject jsonObject, String url) {
         try {
             JSONObject objects = jsonObject.getJSONArray("objects")
                     .getJSONObject(0);
